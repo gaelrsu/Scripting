@@ -17,7 +17,7 @@ def attack():
 
   for i in range(Trd):
  thread = threading.Thread(target=attack)
- thread.start(100)
+ thread.start()
 
 global attack_num
  attack_num += 1
